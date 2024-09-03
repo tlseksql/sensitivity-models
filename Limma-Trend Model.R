@@ -135,7 +135,7 @@ limma_gdsc1_mclp_rppa <- limma_trend_processor(mclp_rppa_variables, gdsc1_aac_ma
 limma_gdsc2_mclp_rppa <- limma_trend_processor(mclp_rppa_variables, gdsc2_aac_matrices)
 
   # Limma results files backup
-# !! NOTE: Function to extract aac takes +/-6 hours to complete
+# !! NOTE: Function takes +/-6 hours to complete
 omdirs <- c('ccle_rnaseq', 'ccle_rppa', 'ccle_ms', 'mclp_rppa')
 sapply(omdirs, function(dir) dir.create(file.path('model_data', 'limma_results', dir), recursive = TRUE))
 saveRDS(limma_ctrpv2_ccle_rnaseq, file = 'model_data/limma_results/ccle_rnaseq/CTRPv2.rds')
