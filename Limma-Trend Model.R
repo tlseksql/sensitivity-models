@@ -317,12 +317,17 @@ correlation_calculator <- function(means) {
     filter(pharmacological_class == "Reference") %>%
     select(-pharmacological_class)
   
-  correlations <- means %>%
-    filter(pharmacological_class != "Reference") %>%
+  class_means <- means %>%
+    filter(pharmacological_class != "Reference")
+  
+  joined_means <- class_means %>%
+    inner_join(reference_means, by = "assay_id", suffix = c("_class", "_ref"))
+  
+  correlations <- joined_means %>%
     group_by(pharmacological_class) %>%
     summarise(
-      cor_logFC = cor(mean_logFC, reference_means$mean_logFC, method = "pearson"),
-      cor_AveExpr = cor(mean_AveExpr, reference_means$mean_AveExpr, method = "pearson"),
+      cor_logFC = cor(mean_logFC_class, mean_logFC_ref, method = "pearson"),
+      cor_AveExpr = cor(mean_AveExpr_class, mean_AveExpr_ref, method = "pearson"),
       .groups = 'drop'
     )
   return(correlations)
