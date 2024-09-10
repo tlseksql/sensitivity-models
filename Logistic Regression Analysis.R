@@ -471,18 +471,24 @@ correlation_calculator <- function(means) {
     filter(pharmacological_class == "Reference") %>%
     select(-pharmacological_class)
   
-  correlations <- means %>%
-    filter(pharmacological_class != "Reference") %>%
+  class_means <- means %>%
+    filter(pharmacological_class != "Reference")
+  
+  joined_means <- class_means %>%
+    inner_join(reference_means, by = "assay_id", suffix = c("_class", "_ref"))
+  
+  correlations <- joined_means %>%
     group_by(pharmacological_class) %>%
     summarise(
-      cor_mean_odds_ratio = cor(mean_odds_ratio, reference_means$mean_odds_ratio, method = "pearson"),
-      cor_mean_mean_probability = cor(mean_mean_probability, reference_means$mean_mean_probability, method = "pearson"),
-      cor_mean_median_probability = cor(mean_median_probability, reference_means$mean_median_probability, method = "pearson"),
+      cor_mean_odds_ratio = cor(mean_odds_ratio_class, mean_odds_ratio_ref, method = "pearson"),
+      cor_mean_mean_probability = cor(mean_mean_probability_class, mean_mean_probability_ref, method = "pearson"),
+      cor_mean_median_probability = cor(mean_median_probability_class, mean_median_probability_ref, method = "pearson"),
       .groups = 'drop'
     )
+  
   return(correlations)
 }
-
+       
   # ! NOTE: Correlation with IAP INHIBITORS WILL NOT = 1
     # Compound "IDRONOXIL" is an IAP inhibitor but not a SMAC mimetic
 correlations_ccle_rnaseq <- correlation_calculator(class_means_ccle_rnaseq)
