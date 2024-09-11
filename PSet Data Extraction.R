@@ -231,7 +231,7 @@ ensembl_retriever <- function(dataset) {
   # CCLE RNAseq experiment information (run)
   # Source: Expression Atlas (https://www.ebi.ac.uk/gxa/experiments/E-MTAB-2770/Experiment%20Design)
 library(readr)
-CCLE_RNA_run <- read_tsv("E-MTAB-2770-experiment-design.tsv")
+CCLE_RNA_run <- read_tsv("CCLE-RNAseq-experiment-design.tsv")
 
   # Primary
 CCLE_RNA_data <- CCLE_RNA@molecularProfiles[["Kallisto_0.46.1.rnaseq"]]
