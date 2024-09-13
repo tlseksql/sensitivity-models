@@ -215,6 +215,58 @@ limma_DE_ccle_rnaseq_ids <- unique(limma_IAP_ccle_rnaseq$assay_id) # n = 4281
 limma_DE_ccle_rppa_ids <- unique(limma_IAP_ccle_rppa$assay_id) # n = 4
 limma_DE_mclp_rppa_ids <- unique(limma_IAP_mclp_rppa$assay_id) # n = 3
 
+  # Function to differentiate differential expression
+DE_id_distribution <- function(df) {
+  if (!("logFC" %in% colnames(df)) || !("assay_id" %in% colnames(df))) {
+    stop("The data must contain 'logFC' and 'assay_id' columns.")
+  }
+
+  negative_assay_ids <- unique(df$assay_id[df$logFC < 0])
+  negative_count <- length(negative_assay_ids)
+
+  positive_assay_ids <- unique(df$assay_id[df$logFC > 0])
+  positive_count <- length(positive_assay_ids)
+  
+  assay_id_counts <- table(df$assay_id)  # Count occurrences of each assay_id
+  duplicate_assay_ids <- names(assay_id_counts[assay_id_counts > 1])  # Filter those with more than 1 row
+  
+  duplicate_assay_ids_logFC_less_than_zero <- unique(df[df$logFC < 0 & df$assay_id %in% duplicate_assay_ids, "assay_id"])
+  duplicate_assay_ids_logFC_greater_than_zero <- unique(df[df$logFC > 0 & df$assay_id %in% duplicate_assay_ids, "assay_id"])
+  
+  # Return the results as a list containing both assay_ids and their counts
+  return(list(
+    "logFC < 0" = list(
+      "count" = negative_count,
+      "assay_ids" = negative_assay_ids
+    ),
+    "logFC > 0" = list(
+      "count" = positive_count,
+      "assay_ids" = positive_assay_ids
+    ),
+    "duplicate_assay_ids" = list(
+      "overall_count" = length(duplicate_assay_ids),
+      "all" = duplicate_assay_ids,
+      "logFC < 0" = list(
+        "count" = length(duplicate_assay_ids_logFC_less_than_zero),
+        "assay_ids" = duplicate_assay_ids_logFC_less_than_zero
+      ),
+      "logFC > 0" = list(
+        "count" = length(duplicate_assay_ids_logFC_greater_than_zero),
+        "assay_ids" = duplicate_assay_ids_logFC_greater_than_zero
+      )
+    )
+  ))
+}
+
+limma_DE_ccle_rnaseq_ids_distribution <- DE_id_distribution(limma_IAP_ccle_rnaseq)
+limma_DE_ccle_rppa_ids_distribution <- DE_id_distribution(limma_IAP_ccle_rppa)
+limma_DE_mclp_rppa_ids_distribution <- DE_id_distribution(limma_IAP_mclp_rppa)
+
+saveRDS(limma_DE_ccle_rnaseq_ids_distribution, file = 'model_data/limma_results/ccle_rnaseq/logFC Distribution.rds')
+saveRDS(limma_DE_ccle_rppa_ids_distribution, file = 'model_data/limma_results/ccle_rppa/logFC Distribution.rds')
+saveRDS(limma_DE_mclp_rppa_ids_distribution, file = 'model_data/limma_results/mclp_rppa/logFC Distribution.rds')
+
+
   # Function to subset DE genes across list
 DE_subsetter <- function(results_list, DE_ids) {
   DE_list <- list()
