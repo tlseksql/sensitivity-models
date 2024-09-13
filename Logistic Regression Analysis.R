@@ -356,6 +356,147 @@ logreg_SAI_ccle_rppa_ids <- unique(logreg_IAP_ccle_rppa$assay_id) # n = 69
 logreg_SAI_ccle_ms_ids <- unique(logreg_IAP_ccle_ms$assay_id) # n = 1425
 logreg_SAI_mclp_rppa_ids <- unique(logreg_IAP_mclp_rppa$assay_id) # n = 2
 
+  # Function to analyze unique assay_ids based on odds ratio and median predicted probability
+logreg_assay_id_distribution <- function(dt) {
+  required_cols <- c("assay_id", "odds_ratio", "median_probability")
+  if (!all(required_cols %in% colnames(dt))) {
+    stop(paste("The data.table must contain the following columns:", paste(required_cols, collapse = ", ")))
+  }
+  
+  odds_ratio_less_than_one_ids <- dt[odds_ratio < 1, unique(assay_id)]
+  odds_ratio_less_than_one_count <- length(odds_ratio_less_than_one_ids)
+  
+  odds_ratio_greater_than_one_ids <- dt[odds_ratio > 1, unique(assay_id)]
+  odds_ratio_greater_than_one_count <- length(odds_ratio_greater_than_one_ids)
+
+  median_prob_greater_than_half_ids <- dt[median_probability > 0.5, unique(assay_id)]
+  median_prob_greater_than_half_count <- length(median_prob_greater_than_half_ids)
+  
+  median_prob_less_than_half_ids <- dt[median_probability < 0.5, unique(assay_id)]
+  median_prob_less_than_half_count <- length(median_prob_less_than_half_ids)
+  
+  assay_id_counts <- dt[, .N, by = assay_id]
+  duplicate_assay_ids <- assay_id_counts[N > 1, assay_id]
+  
+  duplicate_odds_ratio_less_than_one <- dt[odds_ratio < 1 & assay_id %in% duplicate_assay_ids, unique(assay_id)]
+  duplicate_odds_ratio_greater_than_one <- dt[odds_ratio > 1 & assay_id %in% duplicate_assay_ids, unique(assay_id)]
+
+  duplicate_median_prob_greater_than_half <- dt[median_probability > 0.5 & assay_id %in% duplicate_assay_ids, unique(assay_id)]
+  duplicate_median_prob_less_than_half <- dt[median_probability < 0.5 & assay_id %in% duplicate_assay_ids, unique(assay_id)]
+  
+  return(list(
+    "odds_ratio < 1" = list(
+      "count" = odds_ratio_less_than_one_count,
+      "assay_ids" = odds_ratio_less_than_one_ids
+    ),
+    "odds_ratio > 1" = list(
+      "count" = odds_ratio_greater_than_one_count,
+      "assay_ids" = odds_ratio_greater_than_one_ids
+    ),
+    "median_probability > 0.5" = list(
+      "count" = median_prob_greater_than_half_count,
+      "assay_ids" = median_prob_greater_than_half_ids
+    ),
+    "median_probability < 0.5" = list(
+      "count" = median_prob_less_than_half_count,
+      "assay_ids" = median_prob_less_than_half_ids
+    ),
+    "duplicate_assay_ids" = list(
+      "overall_count" = length(duplicate_assay_ids),
+      "all" = duplicate_assay_ids,
+      "odds_ratio < 1" = list(
+        "count" = length(duplicate_odds_ratio_less_than_one),
+        "assay_ids" = duplicate_odds_ratio_less_than_one
+      ),
+      "odds_ratio > 1" = list(
+        "count" = length(duplicate_odds_ratio_greater_than_one),
+        "assay_ids" = duplicate_odds_ratio_greater_than_one
+      ),
+      "median_probability > 0.5" = list(
+        "count" = length(duplicate_median_prob_greater_than_half),
+        "assay_ids" = duplicate_median_prob_greater_than_half
+      ),
+      "median_probability < 0.5" = list(
+        "count" = length(duplicate_median_prob_less_than_half),
+        "assay_ids" = duplicate_median_prob_less_than_half
+      )
+    )
+  ))
+}
+
+logreg_SAI_ccle_rnaseq_ids_distribution <- logreg_assay_id_distribution(logreg_IAP_ccle_rnaseq)
+logreg_SAI_ccle_rppa_ids_distribution <- logreg_assay_id_distribution(logreg_IAP_ccle_rppa)
+logreg_SAI_ccle_ms_ids_distribution <- logreg_assay_id_distribution(logreg_IAP_ccle_ms)
+logreg_SAI_mclp_rppa_ids_distribution <- logreg_assay_id_distribution(logreg_IAP_mclp_rppa)
+
+saveRDS(logreg_SAI_ccle_rnaseq_ids_distribution, file = 'model_data/logreg_analysis/ccle_rnaseq/MPP OR Distribution.rds')
+saveRDS(logreg_SAI_ccle_rppa_ids_distribution, file = 'model_data/logreg_analysis/ccle_rppa/MPP OR Distribution.rds')
+saveRDS(logreg_SAI_ccle_ms_ids_distribution, file = 'model_data/logreg_analysis/ccle_ms/MPP OR Distribution.rds')
+saveRDS(logreg_SAI_mclp_rppa_ids_distribution, file = 'model_data/logreg_analysis/mclp_rppa/MPP OR Distribution.rds')
+
+  # Function to differentiate features into quadrants
+quad_assay_id_distribution <- function(dt) {
+  if (!("odds_ratio" %in% colnames(dt)) || !("median_probability" %in% colnames(dt))) {
+    stop("The data.table must contain 'odds_ratio' and 'median_probability' columns.")
+  }
+  
+  group_1_ids <- dt[odds_ratio < 1 & median_probability > 0.5, unique(assay_id)]
+  group_2_ids <- dt[odds_ratio > 1 & median_probability > 0.5, unique(assay_id)]
+  group_3_ids <- dt[odds_ratio > 1 & median_probability < 0.5, unique(assay_id)]
+  group_4_ids <- dt[odds_ratio < 1 & median_probability < 0.5, unique(assay_id)]
+  
+  # Identify assay_ids present in more than one group
+  all_assay_ids <- c(group_1_ids, group_2_ids, group_3_ids, group_4_ids)
+  assay_ids_in_multiple_groups <- all_assay_ids[duplicated(all_assay_ids)]
+  
+  # Remove assay_ids that are in multiple groups from each group
+  group_1_ids_unique <- setdiff(group_1_ids, assay_ids_in_multiple_groups)
+  group_2_ids_unique <- setdiff(group_2_ids, assay_ids_in_multiple_groups)
+  group_3_ids_unique <- setdiff(group_3_ids, assay_ids_in_multiple_groups)
+  group_4_ids_unique <- setdiff(group_4_ids, assay_ids_in_multiple_groups)
+  
+  group_1_duplicates <- dt[odds_ratio < 1 & median_probability > 0.5, .N, by = assay_id][N > 1, assay_id]
+  group_2_duplicates <- dt[odds_ratio > 1 & median_probability > 0.5, .N, by = assay_id][N > 1, assay_id]
+  group_3_duplicates <- dt[odds_ratio > 1 & median_probability < 0.5, .N, by = assay_id][N > 1, assay_id]
+  group_4_duplicates <- dt[odds_ratio < 1 & median_probability < 0.5, .N, by = assay_id][N > 1, assay_id]
+  
+  return(list(
+    "odds_ratio < 1 & median_probability > 0.5" = list(
+      "count" = length(group_1_ids_unique),
+      "assay_ids" = group_1_ids_unique,
+      "duplicate_assay_ids" = group_1_duplicates
+    ),
+    "odds_ratio > 1 & median_probability > 0.5" = list(
+      "count" = length(group_2_ids_unique),
+      "assay_ids" = group_2_ids_unique,
+      "duplicate_assay_ids" = group_2_duplicates
+    ),
+    "odds_ratio > 1 & median_probability < 0.5" = list(
+      "count" = length(group_3_ids_unique),
+      "assay_ids" = group_3_ids_unique,
+      "duplicate_assay_ids" = group_3_duplicates
+    ),
+    "odds_ratio < 1 & median_probability < 0.5" = list(
+      "count" = length(group_4_ids_unique),
+      "assay_ids" = group_4_ids_unique,
+      "duplicate_assay_ids" = group_4_duplicates
+    ),
+    "multiple_conditions" = list(
+      "assay" = unique(assay_ids_in_multiple_groups)
+    )
+  ))
+}
+  
+logreg_SAI_ccle_rnaseq_ids_quad <- quad_assay_id_distribution(logreg_IAP_ccle_rnaseq)
+logreg_SAI_ccle_rppa_ids_quad <- quad_assay_id_distribution(logreg_IAP_ccle_rppa)
+logreg_SAI_ccle_ms_ids_quad <- quad_assay_id_distribution(logreg_IAP_ccle_ms)
+logreg_SAI_mclp_rppa_ids_quad <- quad_assay_id_distribution(logreg_IAP_mclp_rppa)
+
+saveRDS(logreg_SAI_ccle_rnaseq_ids_quad, file = 'model_data/logreg_analysis/ccle_rnaseq/MPP OR Quadrant.rds')
+saveRDS(logreg_SAI_ccle_rppa_ids_quad, file = 'model_data/logreg_analysis/ccle_rppa/MPP OR Quadrant.rds')
+saveRDS(logreg_SAI_ccle_ms_ids_quad, file = 'model_data/logreg_analysis/ccle_ms/MPP OR Quadrant.rds')
+saveRDS(logreg_SAI_mclp_rppa_ids_quad, file = 'model_data/logreg_analysis/mclp_rppa/MPP OR Quadrant.rds')
+
   # Function to subset significant assay_ids across list
 SAI_subsetter <- function(results_list, SAI_ids) {
   SAI_list <- list()
