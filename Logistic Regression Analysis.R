@@ -5,23 +5,10 @@ gdsc1_aac <- readRDS(file = 'model_data/aac_data/GDSC1.rds')
 gdsc2_aac <- readRDS(file = 'model_data/aac_data/GDSC2.rds')
 
 # Load omics data
-ccle_rnaseq <- readRDS(file = 'model_data/omics_data/CCLE RNAseq.rds')
-ccle_rppa <- readRDS(file = 'model_data/omics_data/CCLE RPPA.rds')
-ccle_ms <- readRDS(file = 'model_data/omics_data/CCLE MS.rds')
-mclp_rppa <- readRDS(file = 'model_data/omics_data/MCLP RPPA.rds')
-
-  # Function to remove zero-variance genes in omics
-variance_filter <- function(omics) {
-  omics <- na.omit(omics)
-  gene_variance <- apply(omics, 1, var) # Calculate (row-wise) variance
-  variable_genes <- omics[gene_variance != 0, ]
-  return(variable_genes)
-}
-
-ccle_rnaseq_variables <- variance_filter(ccle_rnaseq)
-ccle_rppa_variables <- variance_filter(ccle_rppa)
-ccle_ms_variables <- variance_filter(ccle_ms)
-mclp_rppa_variables <- variance_filter(mclp_rppa)
+ccle_rnaseq_variables <- readRDS(file = 'model_data/omics_data/selected_features/CCLE RNAseq.rds')
+ccle_rppa_variables <- readRDS(file = 'model_data/omics_data/selected_features/CCLE RPPA.rds')
+ccle_ms_variables <- readRDS(file = 'model_data/omics_data/selected_features/CCLE MS.rds')
+mclp_rppa_variables <- readRDS(file = 'model_data/omics_data/selected_features/MCLP RPPA.rds')
 
 library(dplyr)
 library(tidyr)
