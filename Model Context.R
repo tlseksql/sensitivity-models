@@ -79,6 +79,36 @@ saveRDS(ccle_rppa, file = 'model_data/omics_data/CCLE RPPA.rds')
 saveRDS(ccle_ms, file = 'model_data/omics_data/CCLE MS.rds')
 saveRDS(mclp_rppa, file = 'model_data/omics_data/MCLP RPPA.rds')
 
+  # Function to select for "protein-coding" genes in RNA-seq
+protein_coding_filter <- function(omics, metadata){
+  protein_coding_metadata <- metadata[metadata$gene_type == "protein_coding", ]
+  protein_coding_genes <- protein_coding_metadata$assay_id
+  
+  omics_filtered <- omics[rownames(omics) %in% protein_coding_genes, ]
+  return(omics_filtered)
+}
+  
+ccle_rnaseq_pc <- protein_coding_filter(ccle_rnaseq, ccle_rnaseq_metadata)
+
+  # Function to filter zero variance genes
+variance_filter <- function(omics) {
+  omics <- na.omit(omics)
+  gene_variance <- apply(omics, 1, var) # Calculate (row-wise) variance
+  variable_genes <- omics[gene_variance != 0, ]
+  return(variable_genes)
+}
+
+ccle_rnaseq_pc_variables <- variance_filter(ccle_rnaseq_pc)
+ccle_rppa_variables <- variance_filter(ccle_rppa)
+ccle_ms_variables <- variance_filter(ccle_ms)
+mclp_rppa_variables <- variance_filter(mclp_rppa)
+
+dir.create(file.path('model_data', 'omics_data', 'selected_features'), recursive = TRUE)
+saveRDS(ccle_rnaseq_pc_variables, file = 'model_data/omics_data/selected_features/CCLE RNAseq.rds')
+saveRDS(ccle_rppa_variables, file = 'model_data/omics_data/selected_features/CCLE RPPA.rds')
+saveRDS(ccle_ms_variables, file = 'model_data/omics_data/selected_features/CCLE MS.rds')
+saveRDS(mclp_rppa_variables, file = 'model_data/omics_data/selected_features/MCLP RPPA.rds')
+
   # Function for batch effects detection in omics data
 library(tidyverse)
 library(caret)
@@ -143,15 +173,17 @@ pca_processor <- function(matrice, model_context, matrice_name) {
   
   print(pca_plot)
   
-  output_dir <- file.path("model_data", "pca_plot")
+  output_dir <- file.path('model_data', 'pca_plot', 'selected_features')
   if (!dir.exists(output_dir)) {
     dir.create(output_dir, recursive = TRUE)
   }
+
   output_file <- file.path(output_dir, paste0(formatted_title, ".png"))
+
   ggsave(output_file, plot = pca_plot, width = 8, height = 6)
 }
 
-ccle_rnaseq_pca <- pca_processor(ccle_rnaseq, model_context, "CCLE_RNAseq")
-ccle_rppa_pca <- pca_processor(ccle_rppa, model_context, "CCLE_RPPA")
-ccle_ms_pca <- pca_processor(ccle_ms, model_context, "CCLE_MS")
-mclp_rppa_pca <- pca_processor(mclp_rppa, model_context, "MCLP_RPPA")
+ccle_rnaseq_pc_variables_pca <- pca_processor(ccle_rnaseq_pc_variables, model_context, "CCLE_RNAseq")
+ccle_rppa_variables_pca <- pca_processor(ccle_rppa_variables, model_context, "CCLE_RPPA")
+ccle_ms_variables_pca <- pca_processor(ccle_ms_variables, model_context, "CCLE_MS")
+mclp_rppa_variables_pca <- pca_processor(mclp_rppa_variables, model_context, "MCLP_RPPA")
