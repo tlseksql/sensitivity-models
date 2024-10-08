@@ -232,27 +232,6 @@ saveRDS(prism_mclp_rppa_lr, file = 'model_data/linreg_analysis/mclp_rppa/PRISM.r
 saveRDS(gdsc1_mclp_rppa_lr, file = 'model_data/linreg_analysis/mclp_rppa/GDSC1.rds')
 saveRDS(gdsc2_mclp_rppa_lr, file = 'model_data/linreg_analysis/mclp_rppa/GDSC2.rds')
 
-ctrpv2_ccle_rnaseq_lr <- readRDS(file = 'model_data/linreg_analysis/ccle_rnaseq/CTRPv2.rds')
-prism_ccle_rnaseq_lr <- readRDS(file = 'model_data/linreg_analysis/ccle_rnaseq/PRISM.rds')
-gdsc1_ccle_rnaseq_lr <- readRDS(file = 'model_data/linreg_analysis/ccle_rnaseq/GDSC1.rds')
-gdsc2_ccle_rnaseq_lr <- readRDS(file = 'model_data/linreg_analysis/ccle_rnaseq/GDSC2.rds')
-
-ctrpv2_ccle_rppa_lr <- readRDS(file = 'model_data/linreg_analysis/ccle_rppa/CTRPv2.rds')
-prism_ccle_rppa_lr <- readRDS(file = 'model_data/linreg_analysis/ccle_rppa/PRISM.rds')
-gdsc1_ccle_rppa_lr <- readRDS(file = 'model_data/linreg_analysis/ccle_rppa/GDSC1.rds')
-gdsc2_ccle_rppa_lr <- readRDS(file = 'model_data/linreg_analysis/ccle_rppa/GDSC2.rds')
-
-ctrpv2_ccle_ms_lr <- readRDS(file = 'model_data/linreg_analysis/ccle_ms/CTRPv2.rds')
-prism_ccle_ms_lr <- readRDS(file = 'model_data/linreg_analysis/ccle_ms/PRISM.rds')
-gdsc1_ccle_ms_lr <- readRDS(file = 'model_data/linreg_analysis/ccle_ms/GDSC1.rds')
-gdsc2_ccle_ms_lr <- readRDS(file = 'model_data/linreg_analysis/ccle_ms/GDSC2.rds')
-
-ctrpv2_mclp_rppa_lr <- readRDS(file = 'model_data/linreg_analysis/mclp_rppa/CTRPv2.rds')
-prism_mclp_rppa_lr <- readRDS(file = 'model_data/linreg_analysis/mclp_rppa/PRISM.rds')
-gdsc1_mclp_rppa_lr <- readRDS(file = 'model_data/linreg_analysis/mclp_rppa/GDSC1.rds')
-gdsc2_mclp_rppa_lr <- readRDS(file = 'model_data/linreg_analysis/mclp_rppa/GDSC2.rds')
-
-
 ccle_rnaseq_lr_list <- list(ctrpv2_ccle_rnaseq_lr = ctrpv2_ccle_rnaseq_lr,
                             prism_ccle_rnaseq_lr = prism_ccle_rnaseq_lr,
                             gdsc1_ccle_rnaseq_lr = gdsc1_ccle_rnaseq_lr,
@@ -475,57 +454,57 @@ library(viridis)
 inter_corrplotter <- function(data) {
   setDT(data)
   
-  # 1: Convert to wide format
+  # 1: convert to wide format
   wide_data <- dcast(data, assay_id ~ pharmacological_class, value.var = "r", fun.aggregate = mean, na.rm = TRUE)
   
-  # 2: Remove rows where all 'r' values are NA
+  # 2: remove rows where all 'r' values are NA
   wide_data <- wide_data[rowSums(is.na(wide_data)) < (ncol(wide_data) - 1)]
   
-  # 3: Remove columns with zero variance (constant values or all NAs)
+  # 3: remove columns with zero variance (constant values or all NAs)
   valid_columns <- sapply(wide_data[, -1, with = FALSE], function(col) {
     sd(col, na.rm = TRUE) > 0
   })
   
-  # Ensure valid_columns is only TRUE/FALSE and handle NAs
+  # ensure valid_columns is only TRUE/FALSE and handle NAs
   valid_columns[is.na(valid_columns)] <- FALSE
   
   if (sum(valid_columns) == 0) {
     stop("No valid columns with variance found for correlation calculation.")
   }
   
-  # Keep only the columns with variance
+  # keep only the columns with variance
   wide_data_filtered <- wide_data[, c(TRUE, valid_columns), with = FALSE]
   
-  # 4: Calculate the correlation matrix between pharmacological classes
+  # 4: calculate the correlation matrix between pharmacological classes
   correlation_matrix <- cor(wide_data_filtered[, -1, with = FALSE], use = "pairwise.complete.obs")
   
-  # 5: Extract correlations with "IAP INHIBITOR"
+  # 5: extract correlations with "IAP INHIBITOR"
   if (!"IAP INHIBITOR" %in% colnames(correlation_matrix)) {
     stop("Pharmacological class 'IAP INHIBITOR' not found in the dataset.")
   }
   
   iap_correlations <- correlation_matrix[,"IAP INHIBITOR", drop = FALSE]
   
-  # 6: Filter out classes that contain "SYNERGY:"
+  # 6: filter out classes that contain "SYNERGY:"
   iap_correlations_filtered <- iap_correlations[!grepl("^SYNERGY:", rownames(iap_correlations)), , drop = FALSE]
   
-  # 7: Sort the correlations with "IAP INHIBITOR"
+  # 7: sort the correlations with "IAP INHIBITOR"
   iap_correlations_sorted <- sort(iap_correlations_filtered[,1], decreasing = TRUE, na.last = NA)
   
-  # 8: Select the top 10 and bottom 10 correlated classes (excluding IAP INHIBITOR itself)
+  # 8: select the top 10 and bottom 10 correlated classes (excluding IAP INHIBITOR itself)
   top_10 <- head(iap_correlations_sorted, 10)
   bottom_10 <- tail(iap_correlations_sorted, 10)
   
-  # 9: Find the 10 classes with correlation closest to 0
+  # 9: find the 10 classes with correlation closest to 0
   closest_to_zero <- head(iap_correlations_filtered[order(abs(iap_correlations_filtered[,1])), , drop = FALSE], 10)
   
-  # 10: Combine the top 10, bottom 10, and closest to 0 classes, ensuring no duplicates
+  # 10: combine the top 10, bottom 10, and closest to 0 classes, ensuring no duplicates
   selected_classes <- unique(c(names(top_10), names(bottom_10), rownames(closest_to_zero)))
   
-  # 11: Subset the correlation matrix to only include the selected classes
+  # 11: subset the correlation matrix to only include the selected classes
   selected_matrix <- correlation_matrix[selected_classes, selected_classes]
   
-  # 12: Generate a corrplot to visualize the correlations
+  # 12: generate a corrplot to visualize the correlations
   corrplot(selected_matrix, method = "circle",
            type = "upper",
            tl.col = "black",
