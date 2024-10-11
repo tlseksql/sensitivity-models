@@ -294,12 +294,12 @@ lasso_regression <- function(split_combinations, cv, omics_variables) {
   final_models <- list()
 
   for (dataset_name in names(split_combinations)) {
-    cat("Processing dataset:", dataset_name, "\n")
+    cat("processing:", dataset_name, "\n")
     
     dataset_results <- list()
 
     for (drug in names(split_combinations[[dataset_name]])) {
-      cat("Processing drug:", drug, "\n")
+      cat("processing:", drug, "\n")
       
       # extract the train and test data for the current drug
       train_data <- split_combinations[[dataset_name]][[drug]]$train
@@ -326,7 +326,7 @@ lasso_regression <- function(split_combinations, cv, omics_variables) {
         
         # ensure there are enough valid rows in the training set
         if (length(valid_train_indices) < 2) {
-          cat("Skipping drug:", drug, "due to insufficient valid training data.\n")
+          cat("skipping:", drug, "due to insufficient valid training data.\n")
           next
         }
         
@@ -340,7 +340,7 @@ lasso_regression <- function(split_combinations, cv, omics_variables) {
         
         # ensure there are enough valid rows in the test set
         if (length(valid_test_indices) == 0) {
-          cat("Skipping predictions for drug:", drug, "due to no valid test data.\n")
+          cat("skipping predictions for:", drug, "due to no valid test data.\n")
           next
         }
         
@@ -366,7 +366,7 @@ lasso_regression <- function(split_combinations, cv, omics_variables) {
           best_lambda = best_lambda
         )
       } else {
-        cat("Skipping drug:", drug, "due to missing cross-validation results.\n")
+        cat("skipping:", drug, "due to missing cross-validation results.\n")
       }
     }
     
