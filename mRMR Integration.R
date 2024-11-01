@@ -6,9 +6,6 @@ gdsc2_aac <- readRDS(file = 'model_data/aac_data/GDSC2.rds')
 
 # load omics data
 ccle_rnaseq_variables <- readRDS(file = 'model_data/omics_data/selected_features/CCLE RNAseq.rds')
-ccle_rppa_variables <- readRDS(file = 'model_data/omics_data/selected_features/CCLE RPPA.rds')
-ccle_ms_variables <- readRDS(file = 'model_data/omics_data/selected_features/CCLE MS.rds')
-mclp_rppa_variables <- readRDS(file = 'model_data/omics_data/selected_features/MCLP RPPA.rds')
 
 library(dplyr)   # for data manipulation
 library(tidyr)   # for data wrangling
